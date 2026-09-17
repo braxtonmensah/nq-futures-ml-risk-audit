@@ -2,6 +2,8 @@
 
 [![Reproducibility](https://github.com/braxtonmensah/nq-futures-ml-risk-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/braxtonmensah/nq-futures-ml-risk-audit/actions/workflows/ci.yml)
 
+**Software status:** the reproducibility workflow and five automated tests currently pass. The negative cases below are documented research results, not unresolved code errors.
+
 Independent replication and overfitting audit for a machine-learning-gated NQ futures research strategy.
 
 This repository is a curated portfolio artifact. It is built to answer the question a skeptical reviewer should ask first:
