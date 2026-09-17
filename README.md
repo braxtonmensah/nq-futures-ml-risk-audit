@@ -1,6 +1,6 @@
 # NQ Futures ML Risk Audit
 
-[![Reproducibility](https://github.com/bsmensah-ctrl/nq-futures-ml-risk-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/bsmensah-ctrl/nq-futures-ml-risk-audit/actions/workflows/ci.yml)
+[![Reproducibility](https://github.com/braxtonmensah/nq-futures-ml-risk-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/braxtonmensah/nq-futures-ml-risk-audit/actions/workflows/ci.yml)
 
 Independent replication and overfitting audit for a machine-learning-gated NQ futures research strategy.
 
