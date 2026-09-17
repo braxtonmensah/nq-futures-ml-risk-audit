@@ -2,25 +2,13 @@
 
 [![Reproducibility](https://github.com/braxtonmensah/nq-futures-ml-risk-audit/actions/workflows/ci.yml/badge.svg)](https://github.com/braxtonmensah/nq-futures-ml-risk-audit/actions/workflows/ci.yml)
 
-**Software status:** the reproducibility workflow and five automated tests currently pass. The negative cases below are documented research results, not unresolved code errors.
+Independent reconstruction and robustness audit of a machine-learning volatility gate for NQ futures.
 
-Independent replication and overfitting audit for a machine-learning-gated NQ futures research strategy.
+An earlier version reported a trade-level t-statistic as a Sharpe-like metric. This audit rebuilds the strategy from raw bars, replaces that number with monthly annualized Sharpe, and tests sensitivity to leakage, slippage, fill ordering, label shuffling, and cross-instrument transfer.
 
-This repository is a curated portfolio artifact. It is built to answer the question a skeptical reviewer should ask first:
+## Key Results
 
-> Which backtest claims still survive after independent rebuild, leakage checks, clean validation, slippage stress, Monte Carlo, and failure analysis?
-
-## Why This Exists
-
-The original research produced an eye-catching Sharpe-like number. That number was not a finance-style Sharpe ratio; it was a trade-level t-statistic. This repo documents the correction: rebuild the strategy from raw bars, downgrade inflated claims, and keep only the evidence that survives stricter validation.
-
-## Headline Result
-
-The most defensible claim is not "profitable bot." It is:
-
-> Built and independently audited an NQ futures research pipeline using walk-forward replication, clean-eval and purged validation, label-shuffle null tests, slippage stress, block-bootstrap Monte Carlo, and execution failure analysis.
-
-At **1.5 NQ points of slippage per leg**, the independently rebuilt original logic produced:
+At **1.5 NQ points of slippage per leg**, the reconstructed strategy produced:
 
 | Test | Trades | PnL | Win Rate | Profit Factor | Monthly Ann. Sharpe |
 |---|---:|---:|---:|---:|---:|
@@ -29,7 +17,18 @@ At **1.5 NQ points of slippage per leg**, the independently rebuilt original log
 | Purged clean-eval rerun | 1,923 | +$56,145 | 66.4% | 1.36 | 2.87 |
 | Label-shuffle null | 0 | $0 | 0.0% | n/a | n/a |
 
-The result is **NQ-specific historical research**, not a live trading system.
+The clean and purged reruns remained positive, while the label-shuffle control produced no trades. Block-bootstrap samples also remained positive across day, week, and month blocks.
+
+## Stress Tests
+
+The audit also identifies the conditions under which the result breaks:
+
+- Same-bar adverse fill ordering produces **-$175,264**.
+- PnL turns negative at **2.5 points of slippage per leg**.
+- The same logic does not generalize to ES or MGC.
+- The original validation used the test fold for LightGBM early stopping; the clean and purged reruns correct that leakage.
+
+These are material limits. The repository supports an NQ-specific historical result, not a claim of live profitability or broad futures generalization.
 
 ## Evidence
 
@@ -39,63 +38,7 @@ The result is **NQ-specific historical research**, not a live trading system.
 
 ![Slippage stress breakpoint](overfit_audit/charts/slippage_stress_pnl.png)
 
-## Reviewer Fast Path
-
-If you only have five minutes:
-
-1. Read the [methods summary](docs/METHODS.md).
-2. Open the [claim matrix](overfit_audit/claim_matrix.csv).
-3. Run `python src/reproduce_metrics.py`.
-4. Check the [validation checklist](docs/VALIDATION_CHECKLIST.md).
-5. Skim the [audit report](overfit_audit/AUDIT_REPORT.pdf).
-
-## What Survived
-
-- Independent rebuild matched the prior conservative 1.5 pt/leg claim.
-- Clean-eval validation remained positive without using the test fold for early stopping.
-- Purged clean-eval validation remained positive after removing fold-boundary overlap.
-- Label-shuffle null produced zero trades.
-- Block-bootstrap samples stayed positive across day, week, and month blocks.
-- Old 9+ / 13+ "Sharpe" language was rejected and replaced with monthly annualized metrics.
-
-## What Failed
-
-- Same-bar adverse ordering produced **-$175,264**, making intrabar execution assumptions the largest unresolved risk.
-- At **2.5 pt/leg slippage**, PnL turned negative.
-- Same-logic cross-instrument checks failed on ES and MGC, so broad futures generalization is not supported.
-- The original validation was corrected because it used the test fold for LightGBM early stopping.
-
-## Repository Map
-
-```text
-.
-├── README.md
-├── REPRODUCIBILITY.md
-├── report.pdf
-├── docs/
-│   ├── METHODS.md
-│   ├── VALIDATION_CHECKLIST.md
-│   └── report.md
-├── data/
-│   └── README.md
-├── overfit_audit/
-│   ├── AUDIT_REPORT.pdf
-│   ├── AUDIT_REPORT.md
-│   ├── claim_matrix.csv
-│   ├── audit_manifest.json
-│   ├── charts/
-│   └── tables/
-├── paper_trading_log/
-│   ├── paper_trading_log_template.csv
-│   └── weekly_review_template.md
-├── results/
-│   └── packaged fresh validation summaries
-└── src/
-    ├── reproduce_metrics.py
-    └── overfit_replication_audit.py
-```
-
-## Reproduce Packaged Metrics
+## Reproduce
 
 ```bash
 pip install -r requirements.txt
@@ -103,11 +46,7 @@ python src/reproduce_metrics.py
 pytest -q
 ```
 
-The quick reproducer reads only committed CSV artifacts. It does not require raw vendor data.
-
-## Full Raw-Data Audit
-
-Raw futures bars are not committed. To rerun the full audit with your own OHLCV data:
+The quick reproducer reads committed audit artifacts and does not require vendor data. A full rerun requires one-minute OHLCV files with `timestamp`, `open`, `high`, `low`, `close`, and `volume` columns:
 
 ```bash
 set NQ_RAW_1M_CSV=C:\path\to\databento_nq_1m.csv
@@ -116,21 +55,19 @@ set MGC_RAW_1M_CSV=C:\path\to\databento_mgc_1m.csv
 python src\overfit_replication_audit.py
 ```
 
-The expected CSV columns are `timestamp`, `open`, `high`, `low`, `close`, and `volume`.
+## Repository Guide
 
-## Read First
+| Path | Purpose |
+|---|---|
+| `report.pdf` | Technical report. |
+| `overfit_audit/AUDIT_REPORT.pdf` | Independent audit report. |
+| `overfit_audit/claim_matrix.csv` | Original claims mapped to audit outcomes. |
+| `docs/METHODS.md` | Methodology and validation design. |
+| `docs/VALIDATION_CHECKLIST.md` | Reproducibility checklist. |
+| `src/reproduce_metrics.py` | Quick artifact reproducer. |
+| `src/overfit_replication_audit.py` | Full raw-data audit. |
+| `paper_trading_log/` | Locked forward-validation templates. |
 
-- [Technical report](report.pdf)
-- [Overfitting audit report](overfit_audit/AUDIT_REPORT.pdf)
-- [Claim matrix](overfit_audit/claim_matrix.csv)
-- [Methods](docs/METHODS.md)
-- [Validation checklist](docs/VALIDATION_CHECKLIST.md)
-- [Reproducibility notes](REPRODUCIBILITY.md)
+## Next Step
 
-## Limitations
-
-This repo does not claim live profitability. The backtests depend on historical bars, modeled costs, and intrabar fill assumptions. The next validation step would be a locked paper-trading period with no parameter changes.
-
-## Forward Validation Template
-
-The `paper_trading_log/` folder provides a locked forward-testing template for tracking every signal, paper fill, slippage estimate, and weekly review without changing parameters midstream.
+The next credible test is a locked paper-trading period with no parameter changes. The templates in `paper_trading_log/` record signals, simulated fills, estimated slippage, and weekly reviews without allowing the backtest to drift after deployment.
